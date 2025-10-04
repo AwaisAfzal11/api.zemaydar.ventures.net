@@ -1,0 +1,494 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.gitignore
+config/db.js
+config/mailer.js
+controllers/authController.js
+controllers/formController.js
+index.js
+middleware/authMiddleware.js
+package.json
+routes/authRoutes.js
+routes/formRoutes.js
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path=".gitignore">
+# Dependencies
+node_modules/
+jspm_packages/
+
+# Production build
+build/
+dist/
+dist-ssr/
+
+# Local env files
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage
+coverage
+*.lcov
+
+# IDEs and editors
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Mac & Linux system files
+.DS_Store
+Thumbs.db
+
+# Optional npm cache directory
+.npm
+.eslintcache
+
+# Parcel cache
+.cache
+.parcel-cache
+
+# Next.js
+.next/
+out/
+
+# Nuxt.js
+.nuxt/
+.cache/
+
+# Remix
+.cache/
+build/
+
+# Svelte
+.svelte-kit/
+.svelte/
+
+# Storybook
+out/
+.storybook-out/
+
+# Serverless
+.serverless/
+
+# FuseBox cache
+.fusebox/
+
+# DynamoDB Local files
+.dynamodb/
+
+# TernJS port file
+.tern-port
+
+# TypeScript
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# Prisma
+prisma/migrations/
+</file>
+
+<file path="config/db.js">
+const mysql = require('mysql2');
+const dotenv = require('dotenv');
+
+dotenv.config();
+
+const pool = mysql.createPool({
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0
+});
+
+module.exports = pool.promise();
+</file>
+
+<file path="config/mailer.js">
+const nodemailer = require('nodemailer');
+const dotenv = require('dotenv');
+
+dotenv.config();
+
+const transporter = nodemailer.createTransport({
+    host: process.env.EMAIL_HOST,
+    port: process.env.EMAIL_PORT,
+    secure: false, // true for 465, false for other ports
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+    },
+});
+
+module.exports = transporter;
+</file>
+
+<file path="controllers/authController.js">
+const db = require('../config/db');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+
+const generateToken = (id, role) => {
+    return jwt.sign({ id, role }, process.env.JWT_SECRET, {
+        expiresIn: '30d',
+    });
+};
+
+const registerUser = async (req, res) => {
+    const { name, email, password } = req.body;
+
+    if (!name || !email || !password) {
+        return res.status(400).json({ message: 'Please fill all fields' });
+    }
+
+    try {
+        const [userExists] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
+        if (userExists.length > 0) {
+            return res.status(400).json({ message: 'User with this email already exists' });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
+        const [result] = await db.query(
+            'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
+            [name, email, hashedPassword, 'client'] // All users created by admin are 'client'
+        );
+
+        res.status(201).json({
+            id: result.insertId,
+            name,
+            email,
+            message: 'User account created successfully. Please send credentials to the client manually.',
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+const loginUser = async (req, res) => {
+    const { email, password } = req.body;
+
+    try {
+        const [users] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
+        if (users.length === 0) {
+            return res.status(401).json({ message: 'Invalid credentials' });
+        }
+
+        const user = users[0];
+        const isMatch = await bcrypt.compare(password, user.password);
+
+        if (isMatch) {
+            res.json({
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                token: generateToken(user.id, user.role),
+            });
+        } else {
+            res.status(401).json({ message: 'Invalid credentials' });
+        }
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+module.exports = { registerUser, loginUser };
+</file>
+
+<file path="controllers/formController.js">
+const transporter = require('../config/mailer');
+const multer = require('multer');
+
+// Configure multer for in-memory storage (we don't save files to disk)
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
+
+const handleDataForm = async (req, res) => {
+    const { name, email, phone, message } = req.body;
+
+    if (!name || !email || !phone || !message) {
+        return res.status(400).json({ message: 'All fields are required' });
+    }
+
+    const adminMailOptions = {
+        from: `"Zemaydar.net System" <${process.env.EMAIL_USER}>`,
+        to: 'info@zemaydar.net',
+        subject: 'New Client Inquiry',
+        html: `
+            <h3>New Inquiry from Zemaydar.net</h3>
+            <p><strong>Name:</strong> ${name}</p>
+            <p><strong>Email:</strong> ${email}</p>
+            <p><strong>Phone:</strong> ${phone}</p>
+            <p><strong>Message:</strong></p>
+            <p>${message}</p>
+        `,
+    };
+
+    const clientMailOptions = {
+        from: `"Zemaydar.net" <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject: 'Welcome! We have received your inquiry.',
+        html: `
+            <h3>Hello ${name},</h3>
+            <p>Thank you for contacting us. We have received your information and will get back to you shortly.</p>
+            <p>Here are the next steps:</p>
+            <ul>
+                <li>Our team will review your message.</li>
+                <li>An admin will contact you to discuss your needs.</li>
+                <li>If we proceed, you will receive login credentials for our client portal.</li>
+            </ul>
+            <p>Best regards,<br/>The Zemaydar.net Team</p>
+        `,
+    };
+
+    try {
+        await transporter.sendMail(adminMailOptions);
+        await transporter.sendMail(clientMailOptions);
+        res.status(200).json({ message: 'Form submitted successfully. A confirmation email has been sent.' });
+    } catch (error) {
+        console.error('Email sending error:', error);
+        res.status(500).json({ message: 'Failed to send emails.' });
+    }
+};
+
+const handleFileUpload = async (req, res) => {
+    const { planName, clientName, clientEmail } = req.body;
+    const file = req.file;
+
+    if (!file) {
+        return res.status(400).json({ message: 'No file uploaded.' });
+    }
+    
+    const mailOptions = {
+        from: `"Zemaydar.net System" <${process.env.EMAIL_USER}>`,
+        to: 'info@zemaydar.net',
+        subject: `File Upload for Plan: ${planName}`,
+        html: `
+            <h3>New File Uploaded by a Client</h3>
+            <p><strong>Client Name:</strong> ${clientName}</p>
+            <p><strong>Client Email:</strong> ${clientEmail}</p>
+            <p><strong>Selected Plan:</strong> ${planName}</p>
+            <p><strong>Date:</strong> ${new Date().toLocaleString()}</p>
+            <p>The client's file is attached to this email.</p>
+        `,
+        attachments: [
+            {
+                filename: file.originalname,
+                content: file.buffer,
+            },
+        ],
+    };
+
+    try {
+        await transporter.sendMail(mailOptions);
+        res.status(200).json({ message: 'File uploaded and sent successfully!' });
+    } catch (error) {
+        console.error('File upload email error:', error);
+        res.status(500).json({ message: 'Failed to send file.' });
+    }
+};
+
+module.exports = { handleDataForm, handleFileUpload, upload };
+</file>
+
+<file path="index.js">
+const express = require('express');
+const dotenv = require('dotenv');
+const cors = require('cors');
+const authRoutes = require('./routes/authRoutes');
+const formRoutes =require('./routes/formRoutes');
+
+dotenv.config();
+
+const app = express();
+
+// Middleware
+app.use(cors()); // Allow requests from our React app
+app.use(express.json()); // To parse JSON bodies
+app.use(express.urlencoded({ extended: true })); // To parse URL-encoded bodies
+
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/forms', formRoutes);
+
+
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+</file>
+
+<file path="middleware/authMiddleware.js">
+const jwt = require('jsonwebtoken');
+
+const protect = (req, res, next) => {
+    let token;
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+        try {
+            token = req.headers.authorization.split(' ')[1];
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            req.user = decoded; // Adds user info (id, role) to the request object
+            next();
+        } catch (error) {
+            res.status(401).json({ message: 'Not authorized, token failed' });
+        }
+    }
+    if (!token) {
+        res.status(401).json({ message: 'Not authorized, no token' });
+    }
+};
+
+const admin = (req, res, next) => {
+    if (req.user && req.user.role === 'admin') {
+        next();
+    } else {
+        res.status(403).json({ message: 'Not authorized as an admin' });
+    }
+};
+
+module.exports = { protect, admin };
+</file>
+
+<file path="package.json">
+{
+  "name": "zemaydar-ventures-server",
+  "version": "1.0.0",
+  "description": "Backend server for Zemaydar Ventures",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon index.js",
+    "dev": "nodemon index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "express",
+    "mysql",
+    "nodejs",
+    "api"
+  ],
+  "author": "Zemaydar Ventures",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.1.5",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.2",
+    "mysql2": "^3.15.1",
+    "nodemailer": "^7.0.6"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}
+</file>
+
+<file path="routes/authRoutes.js">
+const express = require('express');
+const router = express.Router();
+const { registerUser, loginUser } = require('../controllers/authController');
+const { protect, admin } = require('../middleware/authMiddleware');
+
+// @route   POST /api/auth/signup
+// @desc    Admin creates a new user account
+// @access  Private (Admin only)
+router.post('/signup', protect, admin, registerUser);
+
+// @route   POST /api/auth/login
+// @desc    Client or admin login
+// @access  Public
+router.post('/login', loginUser);
+
+module.exports = router;
+</file>
+
+<file path="routes/formRoutes.js">
+const express = require('express');
+const router = express.Router();
+const { handleDataForm, handleFileUpload, upload } = require('../controllers/formController');
+const { protect } = require('../middleware/authMiddleware');
+
+// @route   POST /api/forms/data-gathering
+// @desc    Handles the public data form submission
+// @access  Public
+router.post('/data-gathering', handleDataForm);
+
+// @route   POST /api/forms/upload
+// @desc    Handles file upload from the client dashboard
+// @access  Private (Logged-in clients)
+router.post('/upload', protect, upload.single('file'), handleFileUpload);
+
+module.exports = router;
+</file>
+
+</files>

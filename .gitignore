@@ -1,0 +1,93 @@
+# Dependencies
+node_modules/
+jspm_packages/
+
+# Production build
+build/
+dist/
+dist-ssr/
+
+# Local env files
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage
+coverage
+*.lcov
+
+# IDEs and editors
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Mac & Linux system files
+.DS_Store
+Thumbs.db
+
+# Optional npm cache directory
+.npm
+.eslintcache
+
+# Parcel cache
+.cache
+.parcel-cache
+
+# Next.js
+.next/
+out/
+
+# Nuxt.js
+.nuxt/
+.cache/
+
+# Remix
+.cache/
+build/
+
+# Svelte
+.svelte-kit/
+.svelte/
+
+# Storybook
+out/
+.storybook-out/
+
+# Serverless
+.serverless/
+
+# FuseBox cache
+.fusebox/
+
+# DynamoDB Local files
+.dynamodb/
+
+# TernJS port file
+.tern-port
+
+# TypeScript
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# Prisma
+prisma/migrations/
