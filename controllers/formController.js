@@ -14,7 +14,7 @@ const handleDataForm = async (req, res) => {
 
     const adminMailOptions = {
         from: `"Zemaydar.net System" <${process.env.EMAIL_USER}>`,
-        to: 'zemaydar.net@gmail.com',
+        to: 'zemaydar.net@gmail.com, boldfusion111@gmail.com',
         subject: 'New Client Inquiry',
         html: `
             <h3>New Inquiry from Zemaydar.net</h3>
@@ -63,7 +63,7 @@ const handleFileUpload = async (req, res) => {
     
     const mailOptions = {
         from: `"Zemaydar.net System" <${process.env.EMAIL_USER}>`,
-        to: 'info@zemaydar.net',
+        to: 'info@zemaydar.net, boldfusion111@gmail.com',
         subject: `File Upload for Plan: ${planName}`,
         html: `
             <h3>New File Uploaded by a Client</h3>
