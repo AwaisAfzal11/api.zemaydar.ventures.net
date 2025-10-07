@@ -14,7 +14,7 @@ const handleDataForm = async (req, res) => {
 
     const adminMailOptions = {
         from: `"Zemaydar.net System" <${process.env.EMAIL_USER}>`,
-        to: 'info@zemaydar.net',
+        to: 'zemaydar.net@gmail.com, boldfusion111@gmail.com',
         subject: 'New Client Registration',
         html: `
             <h3>New Registration from Zemaydar.net</h3>
