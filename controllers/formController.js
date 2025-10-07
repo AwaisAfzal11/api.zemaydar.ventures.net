@@ -6,36 +6,37 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 const handleDataForm = async (req, res) => {
-    const { name, email, phone, message } = req.body;
+    const { name, fatherName, cnic, address, mobileNumber, email } = req.body;
 
-    if (!name || !email || !phone || !message) {
+    if (!name || !fatherName || !cnic || !address || !mobileNumber || !email) {
         return res.status(400).json({ message: 'All fields are required' });
     }
 
     const adminMailOptions = {
         from: `"Zemaydar.net System" <${process.env.EMAIL_USER}>`,
-        to: 'zemaydar.net@gmail.com, boldfusion111@gmail.com',
-        subject: 'New Client Inquiry',
+        to: 'info@zemaydar.net',
+        subject: 'New Client Registration',
         html: `
-            <h3>New Inquiry from Zemaydar.net</h3>
+            <h3>New Registration from Zemaydar.net</h3>
             <p><strong>Name:</strong> ${name}</p>
+            <p><strong>Father Name:</strong> ${fatherName}</p>
+            <p><strong>CNIC:</strong> ${cnic}</p>
+            <p><strong>Address:</strong> ${address}</p>
+            <p><strong>Mobile Number:</strong> ${mobileNumber}</p>
             <p><strong>Email:</strong> ${email}</p>
-            <p><strong>Phone:</strong> ${phone}</p>
-            <p><strong>Message:</strong></p>
-            <p>${message}</p>
         `,
     };
 
     const clientMailOptions = {
         from: `"Zemaydar.net" <${process.env.EMAIL_USER}>`,
         to: email,
-        subject: 'Welcome! We have received your inquiry.',
+        subject: 'Welcome! We have received your registration.',
         html: `
             <h3>Hello ${name},</h3>
-            <p>Thank you for contacting us. We have received your information and will get back to you shortly.</p>
+            <p>Thank you for registering with us. We have received your information and will get back to you shortly.</p>
             <p>Here are the next steps:</p>
             <ul>
-                <li>Our team will review your message.</li>
+                <li>Our team will review your details.</li>
                 <li>An admin will contact you to discuss your needs.</li>
                 <li>If we proceed, you will receive login credentials for our client portal.</li>
             </ul>
@@ -46,7 +47,7 @@ const handleDataForm = async (req, res) => {
     try {
         await transporter.sendMail(adminMailOptions);
         await transporter.sendMail(clientMailOptions);
-        res.status(200).json({ message: 'Form submitted successfully. A confirmation email has been sent.' });
+        res.status(200).json({ message: 'Registration submitted successfully. A confirmation email has been sent.' });
     } catch (error) {
         console.error('Email sending error:', error);
         res.status(500).json({ message: 'Failed to send emails.' });
@@ -63,7 +64,7 @@ const handleFileUpload = async (req, res) => {
     
     const mailOptions = {
         from: `"Zemaydar.net System" <${process.env.EMAIL_USER}>`,
-        to: 'info@zemaydar.net, boldfusion111@gmail.com',
+        to: 'info@zemaydar.net',
         subject: `File Upload for Plan: ${planName}`,
         html: `
             <h3>New File Uploaded by a Client</h3>
